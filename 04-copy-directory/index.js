@@ -4,24 +4,24 @@ const path = require('path');
 const destinationPath = path.resolve(__dirname, 'files-copy');
 const sourcePath = path.resolve(__dirname, 'files');
 
-async function copyFolder() {
+async function copyFolder(from, to) {
   try {
-    await fs.rm(destinationPath, {
+    await fs.rm(to, {
       recursive: true,
       force: true,
     });
 
-    await fs.mkdir(destinationPath, {
+    await fs.mkdir(to, {
       recursive: true,
     });
 
-    const entries = await fs.readdir(sourcePath, {
+    const entries = await fs.readdir(from, {
       withFileTypes: true,
     });
 
     for (let entry of entries) {
-      const srcPath = path.resolve(sourcePath, entry.name);
-      const destPath = path.resolve(destinationPath, entry.name);
+      const srcPath = path.resolve(from, entry.name);
+      const destPath = path.resolve(to, entry.name);
 
       if (entry.isFile()) {
         await fs.copyFile(srcPath, destPath);
@@ -35,4 +35,4 @@ async function copyFolder() {
   }
 }
 
-copyFolder();
+copyFolder(sourcePath, destinationPath);

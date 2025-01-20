@@ -4,8 +4,8 @@ const path = require('path');
 const sourcePath = path.resolve(__dirname, 'styles');
 const destinationPath = path.resolve(__dirname, 'project-dist', 'bundle.css');
 
-async function styleBundler() {
-  const entries = await fs.readdir(sourcePath, {
+async function styleBundler(from, to) {
+  const entries = await fs.readdir(from, {
     withFileTypes: true,
   });
 
@@ -15,13 +15,13 @@ async function styleBundler() {
     const extension = path.extname(entry.name);
 
     if (entry.isFile() && extension === '.css') {
-      const srcPath = path.resolve(sourcePath, entry.name);
+      const srcPath = path.resolve(from, entry.name);
       const entryContent = await fs.readFile(srcPath, { encoding: 'utf-8' });
       output.push(entryContent);
     }
   }
 
-  await fs.writeFile(destinationPath, output.join('\n'));
+  await fs.writeFile(to, output.join('\n'));
 }
 
-styleBundler();
+styleBundler(sourcePath, destinationPath);
