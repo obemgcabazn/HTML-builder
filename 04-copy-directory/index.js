@@ -5,27 +5,33 @@ const sourcePath = path.resolve(__dirname, 'files-copy');
 const destinationPath = path.resolve(__dirname, 'files');
 
 async function copyFolder() {
-  await fs.rm(sourcePath, {
-    recursive: true,
-    force: true,
-  });
+  try {
+    await fs.rm(sourcePath, {
+      recursive: true,
+      force: true,
+    });
 
-  await fs.mkdir(sourcePath, {
-    recursive: true,
-  });
+    await fs.mkdir(sourcePath, {
+      recursive: true,
+    });
 
-  const copyFiles = await fs.readdir(destinationPath, {
-    withFileTypes: true,
-  });
+    const entries = await fs.readdir(destinationPath, {
+      withFileTypes: true,
+    });
 
-  for (let file of copyFiles) {
+    for (let entry of entries) {
+      const srcPath = path.resolve(destinationPath, entry.name);
+      const destPath = path.resolve(sourcePath, entry.name);
 
-    if (file.isFile()) {
-      await fs.copyFile(
-        path.resolve(destinationPath, file.name),
-        path.resolve(sourcePath, file.name),
-      );
+      if (entry.isFile()) {
+        await fs.copyFile(srcPath, destPath);
+      } else if (entry.isDirectory()) {
+        await fs.cp(srcPath, destPath, { recursive: true });
+      }
     }
+  } catch (error) {
+    console.error('Error copying folder:', error);
+    throw error;
   }
 }
 
