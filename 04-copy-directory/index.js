@@ -23,11 +23,7 @@ async function copyFolder(from, to) {
       const srcPath = path.resolve(from, entry.name);
       const destPath = path.resolve(to, entry.name);
 
-      if (entry.isFile()) {
-        await fs.copyFile(srcPath, destPath);
-      } else if (entry.isDirectory()) {
-        await fs.cp(srcPath, destPath, { recursive: true });
-      }
+      await fs.copyFile(srcPath, destPath);
     }
   } catch (error) {
     console.error('Error copying folder:', error);
