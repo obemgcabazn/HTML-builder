@@ -9,22 +9,23 @@ const write = fs.createWriteStream(path.resolve(__dirname, 'text.txt'), {
 console.log('Welcome, enter your text');
 
 stdin.on('data', (data) => {
-  const userInput = data.toString();
-  if (userInput === 'exit') {
+  const userInput = data.toString().trim();
+  if (userInput.toLowerCase() === 'exit') {
+    console.log('Goodbye! Thanks for using the application.');
     write.end();
-    process.exit();
+    process.exit(0);
   }
-  write.write(userInput);
+  write.write(userInput + '\n');
 });
 
 process.on('SIGINT', () => {
   write.end();
-  process.exit();
+  process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   write.end();
-  process.exit();
+  process.exit(0);
 });
 
 process.on('exit', () => {
