@@ -34,7 +34,7 @@ tagsInterpolation();
 
 // Styles
 const stylesPath = resolveRootPath('styles');
-const stylesOutputFile = path.join(destinationPath, 'bundle.css');
+const stylesOutputFile = path.join(destinationPath, 'style.css');
 
 async function styleBundler(from, to) {
   const entries = await fs.readdir(from, {
