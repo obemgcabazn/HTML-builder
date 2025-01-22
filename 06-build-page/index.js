@@ -5,36 +5,49 @@ function resolveRootPath(pathPart) {
   return path.resolve(__dirname, pathPart);
 }
 
-const destinationPath = resolveRootPath('project-dist');
-fs.mkdir(destinationPath, { recursive: true });
+async function main() {
+  try {
+    const destinationPath = resolveRootPath('project-dist');
+    await fs.mkdir(destinationPath, { recursive: true });
 
+    // HTML Templates
+    const template = resolveRootPath('template.html');
+    const indexFile = path.join(destinationPath, 'index.html');
+    await fs.copyFile(template, indexFile);
 
-// HTML Templates
-const template = resolveRootPath('template.html');
-const indexFile = path.join(destinationPath, 'index.html');
-fs.copyFile(template, indexFile);
+    // Wait for HTML processing to complete before proceeding
+    await tagsInterpolation();
 
-async function tagsInterpolation() {
-  const componentsDir = resolveRootPath('components');
-  const components = await fs.readdir(componentsDir);
-
-  for (let component of components) {
-    const indexContent = await fs.readFile(indexFile, 'utf-8');
-    const componentName = path.basename(component, path.extname(component));
-    const componentContent = await fs.readFile(path.join(componentsDir, component), 'utf-8');
-
-    await fs.writeFile(
-      indexFile,
-      indexContent.replace(`{{${componentName}}}`, componentContent),
-    );
+    // Process styles and assets in parallel
+    await Promise.all([
+      styleBundler(resolveRootPath('styles'), path.join(destinationPath, 'style.css')),
+      copyFolder(resolveRootPath('assets'), path.join(destinationPath, 'assets'))
+    ]);
+  } catch (error) {
+    console.error('Build failed:', error);
+    process.exit(1);
   }
 }
 
-tagsInterpolation();
+async function tagsInterpolation() {
+  const componentsDir = resolveRootPath('components');
+  const indexFile = path.join(resolveRootPath('project-dist'), 'index.html');
 
-// Styles
-const stylesPath = resolveRootPath('styles');
-const stylesOutputFile = path.join(destinationPath, 'style.css');
+  const components = await fs.readdir(componentsDir);
+  let indexContent = await fs.readFile(indexFile, 'utf-8');
+
+  for (const component of components) {
+    const componentName = path.basename(component, path.extname(component));
+    const componentContent = await fs.readFile(
+        path.join(componentsDir, component),
+        'utf-8'
+    );
+
+    indexContent = indexContent.replace(`{{${componentName}}}`, componentContent);
+  }
+
+  await fs.writeFile(indexFile, indexContent);
+}
 
 async function styleBundler(from, to) {
   const entries = await fs.readdir(from, {
@@ -43,7 +56,7 @@ async function styleBundler(from, to) {
 
   const output = [];
 
-  for (let entry of entries) {
+  for (const entry of entries) {
     const extension = path.extname(entry.name);
 
     if (entry.isFile() && extension === '.css') {
@@ -56,16 +69,8 @@ async function styleBundler(from, to) {
   await fs.writeFile(to, output.join('\n'));
 }
 
-styleBundler(stylesPath, stylesOutputFile);
-
-
-// Assets moving
-const assetsDestinationPath = path.join(destinationPath, 'assets');
-const assetsSourcePath = resolveRootPath('assets');
-
 async function copyFolder(from, to) {
   try {
-
     await fs.rm(to, {
       recursive: true,
       force: true,
@@ -79,20 +84,23 @@ async function copyFolder(from, to) {
       withFileTypes: true,
     });
 
-    for (let entry of entries) {
-      const srcPath = path.resolve(from, entry.name);
-      const destPath = path.resolve(to, entry.name);
+    await Promise.all(
+        entries.map(async (entry) => {
+          const srcPath = path.resolve(from, entry.name);
+          const destPath = path.resolve(to, entry.name);
 
-      if (entry.isFile()) {
-        await fs.copyFile(srcPath, destPath);
-      } else if (entry.isDirectory()) {
-        await copyFolder(srcPath, destPath);
-      }
-    }
+          if (entry.isFile()) {
+            await fs.copyFile(srcPath, destPath);
+          } else if (entry.isDirectory()) {
+            await copyFolder(srcPath, destPath);
+          }
+        })
+    );
   } catch (error) {
     console.error('Error copying folder:', error);
     throw error;
   }
 }
 
-copyFolder(assetsSourcePath, assetsDestinationPath);
+// Execute the main function
+main().catch(console.error);
